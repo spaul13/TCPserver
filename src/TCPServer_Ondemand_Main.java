@@ -48,6 +48,7 @@ public class TCPServer_Ondemand_Main {
 						System.out.println("\n Received Buffer is = " + buf.toString());
 						System.out.println("\n Length of the input buffer received is = " + (buf.toString().length()-1));
 						
+						
 						//resolving the input stream to get the fid
 						//for (int i = 0; i < buf.toString().length() - 1; i++) fid = fid * 10 + (buf[i] - '0');
 						//Sending three requesting at time
@@ -57,9 +58,13 @@ public class TCPServer_Ondemand_Main {
 						for (int i = 7; i < 13; i++)fid[curr] = fid[curr] * 10 + (buf[i] - '0');
 						curr++;
 						for (int i = 13; i < 19; i++)fid[curr] = fid[curr] * 10 + (buf[i] - '0');
+						
 						for (int i=0; i<3; i++)
 						{
-							System.out.println("curr fid: " + fid[i]);
+							//if(fid[i] <=0) fid[i] = 0; //negative fids, fids not requested
+							if(fid[i] <=0)System.out.println("No request for " + i);
+							else System.out.println("curr fid: " + fid[i]);
+							
 						}
 						
 						
@@ -72,22 +77,27 @@ public class TCPServer_Ondemand_Main {
 						FileInputStream fis = new FileInputStream(video);
 						account_1 = fis.read(videoBuf_1);
 						curr++;
-						System.out.println("After First fid \n");
+						
 						
 						//Second video
-						videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
-						video = new File(videoFile);
-						fis = new FileInputStream(video);
-						account_2 = fis.read(videoBuf_2);
+						if(fid[curr]>0)
+						{
+							videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
+							video = new File(videoFile);
+							fis = new FileInputStream(video);
+							account_2 = fis.read(videoBuf_2);							
+						}
 						curr++;
-						System.out.println("After 2nd fid \n");
 						
 						//Third video
-						videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
-						video = new File(videoFile);
-						fis = new FileInputStream(video);
-						account_3 = fis.read(videoBuf_3);
-						System.out.println("After 3rd fid \n");
+						if(fid[curr]>0)
+						{
+							videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
+							video = new File(videoFile);
+							fis = new FileInputStream(video);
+							account_3 = fis.read(videoBuf_3);
+						}
+						System.out.println("\n Sizes of three files =" + account_1 + "," + account_2 + "," + account_3);
 						
 						//preparing the initial packet to all frameids and filesizes
 						buf = new byte[4000];
@@ -107,8 +117,9 @@ public class TCPServer_Ondemand_Main {
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						System.out.println("Send: After First fid \n");
-						temp = fid[curr];
+						
+						if(fid[curr]>0)temp = fid[curr];
+						else temp = 0;
 						curr++;
 						for (int i = 19; i > 13; i--) 
 						{
@@ -121,8 +132,9 @@ public class TCPServer_Ondemand_Main {
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						System.out.println("Send: After second fid \n");
-						temp = fid[curr];
+						
+						if(fid[curr]>0)temp = fid[curr];
+						else temp = 0;
 						for (int i = 31; i > 25; i--) 
 						{
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
@@ -134,19 +146,15 @@ public class TCPServer_Ondemand_Main {
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						System.out.println("Send: After third fid \n");
+						
 						//for (int i = 39; i > 37; i++) buf[i] = 0;
-						System.out.println(" Checkpoint \n");
+						
 						os.write(buf, 0, 40);
-						System.out.println(" Checkpoint_1 \n");
 						os.write(videoBuf_1, 0, account_1);
-						System.out.println(" Checkpoint_2 \n");
 						//os.flush();
-						os.write(videoBuf_2, 0, account_2);
-						System.out.println(" Checkpoint_3 \n");
+						if(account_2 > 0) os.write(videoBuf_2, 0, account_2);
 						//os.flush();
-						os.write(videoBuf_3, 0, account_3);
-						System.out.println(" Checkpoint_4 \n");
+						if(account_3 > 0) os.write(videoBuf_3, 0, account_3);
 						os.flush();
 						
 						
