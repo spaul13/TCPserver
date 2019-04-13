@@ -7,12 +7,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.TimeUnit;
 
 public class TCPServer_Ondemand_Main {
 
 	
 	static String videoPath = "E:/CubeMaps/viking_texas/viking_texas_Ionly/"; //"/Users/spaul/Desktop/viking_final.mp4";";//"F:/SharedDisk/x264/x264/sunlh_test_encode.mkv";//"F:/FurionSystem/CuiyongLab/Furion/Media/sunlh_png.mp4";
-	public static void main(String[] args)
+	public static void main(String[] args) //throws InterruptedException
 
 	{
 
@@ -32,6 +33,11 @@ public class TCPServer_Ondemand_Main {
 					
 						byte[] buf = new byte[1500];
 						byte[] videoBuf = new byte[409600];
+						byte[] videoBuf_1 = new byte[409600];
+						byte[] videoBuf_2 = new byte[409600];
+						byte[] videoBuf_3 = new byte[409600];
+						
+						
 						//int fid = 0;
 						//int fid1 = 0;
 						//int fid2 = 0;
@@ -57,13 +63,102 @@ public class TCPServer_Ondemand_Main {
 						}
 						
 						
+						curr = 0;
+						int account_1, account_2, account_3;
+						account_1 = account_2 = account_3 = 0;
+						//First video
+						String videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
+						File video = new File(videoFile);
+						FileInputStream fis = new FileInputStream(video);
+						account_1 = fis.read(videoBuf_1);
+						curr++;
+						System.out.println("After First fid \n");
+						
+						//Second video
+						videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
+						video = new File(videoFile);
+						fis = new FileInputStream(video);
+						account_2 = fis.read(videoBuf_2);
+						curr++;
+						System.out.println("After 2nd fid \n");
+						
+						//Third video
+						videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
+						video = new File(videoFile);
+						fis = new FileInputStream(video);
+						account_3 = fis.read(videoBuf_3);
+						System.out.println("After 3rd fid \n");
+						
+						//preparing the initial packet to all frameids and filesizes
+						buf = new byte[4000];
+						curr=0;
+						buf[0] = 'S';
+						buf[1] = 'J';
+						temp = fid[curr];
+						curr++;
+						for (int i = 7; i > 1; i--) 
+						{
+							buf[i] = (byte) (char) ((temp % 10) + '0');
+							temp /= 10;
+						}
+						temp = account_1;
+						for (int i = 13; i > 7; i--) 
+						{
+							buf[i] =  (byte) (char) ((temp % 10) + '0');
+							temp /= 10;
+						}
+						System.out.println("Send: After First fid \n");
+						temp = fid[curr];
+						curr++;
+						for (int i = 19; i > 13; i--) 
+						{
+							buf[i] =  (byte) (char) ((temp % 10) + '0');
+							temp /= 10;
+						}
+						temp = account_2;
+						for (int i = 25; i > 19; i--) 
+						{
+							buf[i] =  (byte) (char) ((temp % 10) + '0');
+							temp /= 10;
+						}
+						System.out.println("Send: After second fid \n");
+						temp = fid[curr];
+						for (int i = 31; i > 25; i--) 
+						{
+							buf[i] =  (byte) (char) ((temp % 10) + '0');
+							temp /= 10;
+						}
+						temp = account_3;
+						for (int i = 37; i > 31; i--) 
+						{
+							buf[i] =  (byte) (char) ((temp % 10) + '0');
+							temp /= 10;
+						}
+						System.out.println("Send: After third fid \n");
+						//for (int i = 39; i > 37; i++) buf[i] = 0;
+						System.out.println(" Checkpoint \n");
+						os.write(buf, 0, 40);
+						System.out.println(" Checkpoint_1 \n");
+						os.write(videoBuf_1, 0, account_1);
+						System.out.println(" Checkpoint_2 \n");
+						//os.flush();
+						os.write(videoBuf_2, 0, account_2);
+						System.out.println(" Checkpoint_3 \n");
+						//os.flush();
+						os.write(videoBuf_3, 0, account_3);
+						System.out.println(" Checkpoint_4 \n");
+						os.flush();
+						
+						
+						/*
 						for(int j = 0; j<3 && fid[j] != 0; j++)
 						{
 							System.out.println("curr fid: " + Integer.toString(fid[j]));
 							String videoFile = videoPath + Integer.toString(fid[j]) + ".mp4";
 							System.out.println("Video File name To send: " + videoFile);
 							Long start_rs = System.currentTimeMillis();
-					
+							
+							buf = new byte[1500];
 							int account = 0;
 							File video = new File(videoFile);
 							System.out.println("\n the videofile size is = " + video.length());
@@ -95,17 +190,19 @@ public class TCPServer_Ondemand_Main {
 							{
 								buf[i] = 0;
 							}
-                    
-							os.write(buf, 0, 20);
 							
+							System.out.println("\n Small 20 byte Send Buffer is = " + buf.toString());
+							os.write(buf, 0, 20);
+							//if(j>0) Thread.sleep(1); //sleeping for 1 ms
+							if(j>0) os.flush();
 							os.write(videoBuf, 0, account);
 						
-							/*while ((account = fis.read(videoBuf)) != -1) 
-							{
-								System.out.println("\n the current buffer size is = " + account);
-								socket.getOutputStream().write(videoBuf, 0, account);
-							}
-							 */
+							//while ((account = fis.read(videoBuf)) != -1) 
+							//{
+							//	System.out.println("\n the current buffer size is = " + account);
+							//	socket.getOutputStream().write(videoBuf, 0, account);
+							//}
+							 
 						
 							System.out.println("fid: " + Integer.toString(fid[j]) + "; Send: " + Long.toString(System.currentTimeMillis() - start_send));
 							System.out.println("fid: " + Integer.toString(fid[j]) + "; Read File + Send: " + Long.toString(System.currentTimeMillis() - start_rs));
@@ -114,6 +211,7 @@ public class TCPServer_Ondemand_Main {
 							//socket.getOutputStream().close();
 							System.out.println("Video transmission finished.");
 						}
+						*/
 					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
