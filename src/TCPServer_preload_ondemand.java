@@ -9,26 +9,37 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.TimeUnit;
 
-public class TCPServer_Ondemand_Main {
+public class TCPServer_preload_ondemand {
 
 	
 	static String videoPath = "E:/CubeMaps/viking_texas/viking_texas_Ionly/"; //"/Users/spaul/Desktop/viking_final.mp4";";//"F:/SharedDisk/x264/x264/sunlh_test_encode.mkv";//"F:/FurionSystem/CuiyongLab/Furion/Media/sunlh_png.mp4";
-	public static void __main(String[] args) //throws InterruptedException
+	public static void main(String[] args) //throws InterruptedException
 
 	{
 
 		Socket socket = null;
 		try {
 			ServerSocket ss = new ServerSocket(5000);
-					
+			
+			//byte[][] videoBuf = new byte[10][409600];
+			byte[][] videoBuf = new byte[16100][256000];
 			String videoFile;
 			File video;
 			FileInputStream fis;
+			int[] filesize = new int[25921]; //storing the filesize of all files there
+			for(int i=0; i<16100; i++)
+			{
+				videoFile = videoPath + Integer.toString(i) + ".mp4";
+				video = new File(videoFile);
+				fis = new FileInputStream(video);
+				filesize[i] = fis.read(videoBuf[i]);
+			}
 			
+			for (int i =0 ; i<16100; i++) System.out.println(" \n Filesize = " +filesize[i]);
 
 			while ((socket = ss.accept()) != null) {
 				
-				
+				socket.setSendBufferSize(2000000);//setting the sendbuff size really high
 				System.out.println("\n One Request In");
 				InputStream is = socket.getInputStream();
 				OutputStream os = socket.getOutputStream();
@@ -40,19 +51,9 @@ public class TCPServer_Ondemand_Main {
 					while (true) 
 					{
 					
-						//System.out.println("\n Here 1");
-						byte[] buf = new byte[1500];
-						//byte[] videoBuf = new byte[409600];
-						byte[] videoBuf_1 = new byte[409600];
-						byte[] videoBuf_2 = new byte[409600];
-						byte[] videoBuf_3 = new byte[409600];
 						
-						//System.out.println("\n Here 2");
-						//int fid = 0;
-						//int fid1 = 0;
-						//int fid2 = 0;
 						int[] fid = new int[] {0, 0, 0};
-						
+						byte[] buf = new byte[1500];
 						Long start_input = System.currentTimeMillis();
 						//System.out.println("\n Here 3");
 						is.read(buf);
@@ -76,7 +77,7 @@ public class TCPServer_Ondemand_Main {
 						{
 							//if(fid[i] <=0) fid[i] = 0; //negative fids, fids not requested
 							if(fid[i] <=0)System.out.println("No request for " + i);
-							else System.out.println("curr fid: " + fid[i]);
+							else System.out.println("curr fid: " + fid[i] + ", filesize : " + filesize[fid[i]]);
 							
 						}
 						
@@ -86,6 +87,7 @@ public class TCPServer_Ondemand_Main {
 						account_1 = account_2 = account_3 = 0;
 						double read_start = System.currentTimeMillis();
 						//First video
+						/*
 						if(fid[curr]>0)
 						{
 							videoFile = videoPath + Integer.toString(fid[curr]) + ".mp4";
@@ -114,7 +116,9 @@ public class TCPServer_Ondemand_Main {
 							fis = new FileInputStream(video);
 							account_3 = fis.read(videoBuf_3);
 						}
-						System.out.println("\n Sizes of three files =" + account_1 + "," + account_2 + "," + account_3);
+						*/
+						
+						
 						System.out.println("\n Read the requested Fids take = " + (System.currentTimeMillis() - read_start));
 						
 						//if((account_1 >0) || (account_2 >0) || (account_3 >0))
@@ -124,36 +128,41 @@ public class TCPServer_Ondemand_Main {
 						curr=0;
 						buf[0] = 'S';
 						buf[1] = 'J';
+						//first
 						temp = fid[curr];
-						curr++;
+						
 						double send_pkt_time = System.currentTimeMillis();
 						for (int i = 7; i > 1; i--) 
 						{
 							buf[i] = (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						temp = account_1;
+						if(fid[curr]>0)temp = filesize[fid[curr]];
+						else temp = 0;
 						for (int i = 13; i > 7; i--) 
 						{
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						
+						curr++;
+						//second
 						if(fid[curr]>0)temp = fid[curr];
 						else temp = 0;
-						curr++;
+						
 						for (int i = 19; i > 13; i--) 
 						{
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						temp = account_2;
+						if(fid[curr]>0)temp = filesize[fid[curr]];
+						else temp = 0;;
 						for (int i = 25; i > 19; i--) 
 						{
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						
+						curr++;
+						//third
 						if(fid[curr]>0)temp = fid[curr];
 						else temp = 0;
 						for (int i = 31; i > 25; i--) 
@@ -161,7 +170,9 @@ public class TCPServer_Ondemand_Main {
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
 							temp /= 10;
 						}
-						temp = account_3;
+						if(fid[curr]>0)temp = filesize[fid[curr]];
+						else temp = 0;
+						
 						for (int i = 37; i > 31; i--) 
 						{
 							buf[i] =  (byte) (char) ((temp % 10) + '0');
@@ -169,14 +180,16 @@ public class TCPServer_Ondemand_Main {
 						}
 						System.out.println("\n Preparing small 40 byte pkt take = " + (System.currentTimeMillis() - send_pkt_time));
 						//for (int i = 39; i > 37; i++) buf[i] = 0;
-						
+						curr=0;
 						double send_all_pkts = System.currentTimeMillis();
 						os.write(buf, 0, 40);
-						if(account_1 > 0)os.write(videoBuf_1, 0, account_1);
+						if(fid[curr] > 0)os.write(videoBuf[fid[curr]], 0, filesize[fid[curr]]);
+						curr++;
 						//os.flush();
-						if(account_2 > 0) os.write(videoBuf_2, 0, account_2);
+						if(fid[curr] > 0) os.write(videoBuf[fid[curr]], 0, filesize[fid[curr]]);
+						curr++;
 						//os.flush();
-						if(account_3 > 0) os.write(videoBuf_3, 0, account_3);
+						if(fid[curr] > 0) os.write(videoBuf[fid[curr]], 0, filesize[fid[curr]]);
 						System.out.println("\n sending all pkts take = " + (System.currentTimeMillis() - send_all_pkts));
 						os.flush();
 						

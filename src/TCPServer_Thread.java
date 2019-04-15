@@ -17,7 +17,7 @@ import java.net.Socket;
 
 
 public class TCPServer_Thread {
-    public static void main(String[] args) 
+    public static void __main(String[] args) 
     {
     	TcpThread pt = new TcpThread("client_laptop", 5000, "192.168.1.145");
     	pt.start();	
